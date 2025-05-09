@@ -1,37 +1,48 @@
 import express from 'express';
 import cors from 'cors';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { config } from './config';
-import { testConnection } from './db';
+import { initDatabase } from './db/init';
+import { authService } from './services/auth.service';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-// API routes
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok' });
+// Auth routes
+app.post('/api/auth/register', async (req, res) => {
+  try {
+    const user = await authService.createUser(req.body);
+    res.status(201).json(user);
+  } catch (error) {
+    console.error('Registration error:', error);
+    res.status(500).json({ error: 'Registration failed' });
+  }
 });
 
-// Serve static files in production
-if (!config.isDevelopment) {
-  app.use(express.static(path.join(__dirname, '../../../dist')));
-  
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../../../dist/index.html'));
-  });
-}
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const user = await authService.login(email, password);
+    
+    if (!user) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    
+    res.json({ user });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ error: 'Login failed' });
+  }
+});
+
+const PORT = process.env.PORT || 3000;
 
 async function startServer() {
   try {
-    await testConnection();
+    await initDatabase();
     
-    app.listen(config.port, () => {
-      console.log(`Server running on port ${config.port}`);
-      console.log(`Mode: ${config.isDevelopment ? 'development' : 'production'}`);
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
     });
   } catch (error) {
     console.error('Failed to start server:', error);

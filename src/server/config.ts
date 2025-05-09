@@ -1,11 +1,12 @@
 import dotenv from 'dotenv';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
-dotenv.config();
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+dotenv.config({ path: path.join(__dirname, '../../.env') });
 
 export const config = {
-  port: process.env.PORT || 3000,
-  isDevelopment: process.env.NODE_ENV !== 'production',
   database: {
     host: process.env.DB_HOST || 'gateway01.us-west-2.prod.aws.tidbcloud.com',
     port: parseInt(process.env.DB_PORT || '4000'),
@@ -15,5 +16,9 @@ export const config = {
     ssl: {
       rejectUnauthorized: true
     }
+  },
+  jwt: {
+    secret: process.env.JWT_SECRET || 'your-secret-key',
+    expiresIn: '24h'
   }
 };
