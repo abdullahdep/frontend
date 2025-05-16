@@ -1,9 +1,10 @@
 export interface User {
-  id: number;
-  username: string;
+  id: string;
+  name: string;
   email: string;
-  password: string;
-  created_at: Date;
+  role: 'student' | 'admin';
+  grade?: number;
+  isPremium: boolean;
 }
 
 export interface Subject {

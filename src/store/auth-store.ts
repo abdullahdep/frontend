@@ -2,13 +2,33 @@ import { create } from 'zustand';
 import { User } from '../types';
 
 interface AuthState {
-  user: Omit<User, 'password'> | null;
+  user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string, grade: number) => Promise<void>;
   logout: () => void;
+  upgradeAccount: () => Promise<void>;
 }
+
+// Mock user data for demonstration
+const mockUsers: User[] = [
+  {
+    id: '1',
+    name: 'Admin User',
+    email: 'admin@safaracademy.com',
+    role: 'admin',
+    isPremium: true,
+  },
+  {
+    id: '2',
+    name: 'Student User',
+    email: 'student@example.com',
+    role: 'student',
+    grade: 10,
+    isPremium: false,
+  },
+];
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
@@ -17,63 +37,73 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   login: async (email: string, password: string) => {
     set({ isLoading: true });
-    try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    const user = mockUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
+    
+    if (user) {
+      set({ 
+        user, 
+        isAuthenticated: true, 
+        isLoading: false 
       });
-
-      if (!response.ok) {
-        throw new Error('Login failed');
-      }
-
-      const { user } = await response.json();
-      set({ user, isAuthenticated: true, isLoading: false });
-      
-      // Store user in sessionStorage for persistence
-      sessionStorage.setItem('user', JSON.stringify(user));
-    } catch (error) {
+    } else {
       set({ isLoading: false });
-      throw error;
+      throw new Error('Invalid email or password');
     }
   },
-
+  
   register: async (name: string, email: string, password: string, grade: number) => {
     set({ isLoading: true });
-    try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password, grade, role: 'student' }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Registration failed');
-      }
-
-      const user = await response.json();
-      set({ user, isAuthenticated: true, isLoading: false });
-      
-      // Store user in sessionStorage for persistence
-      sessionStorage.setItem('user', JSON.stringify(user));
-    } catch (error) {
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // Check if user already exists
+    const existingUser = mockUsers.find(u => u.email.toLowerCase() === email.toLowerCase());
+    
+    if (existingUser) {
       set({ isLoading: false });
-      throw error;
+      throw new Error('User with this email already exists');
     }
+    
+    const newUser: User = {
+      id: Math.random().toString(36).substring(2, 9),
+      name,
+      email,
+      role: 'student',
+      grade,
+      isPremium: false,
+    };
+    
+    // In a real app, we would save this to a database
+    mockUsers.push(newUser);
+    
+    set({ 
+      user: newUser, 
+      isAuthenticated: true, 
+      isLoading: false 
+    });
   },
-
+  
   logout: () => {
-    sessionStorage.removeItem('user');
-    set({ user: null, isAuthenticated: false });
+    set({ 
+      user: null, 
+      isAuthenticated: false 
+    });
+  },
+  
+  upgradeAccount: async () => {
+    set({ isLoading: true });
+    
+    // Simulate payment processing
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    
+    set(state => ({
+      user: state.user ? { ...state.user, isPremium: true } : null,
+      isLoading: false
+    }));
   },
 }));
-
-// Initialize auth state from sessionStorage
-const storedUser = sessionStorage.getItem('user');
-if (storedUser) {
-  useAuthStore.setState({ 
-    user: JSON.parse(storedUser), 
-    isAuthenticated: true 
-  });
-}
